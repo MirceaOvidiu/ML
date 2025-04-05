@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pylut as lut
 from matplotlib.patches import Patch  # pentru legenda
 
 
@@ -159,8 +160,6 @@ def histograms(original_image, corrected_image):
 
     plt.legend(handles=legend_elements)
     plt.show()
-
-
 
 print("Color Corrector")
 print("===================================")
