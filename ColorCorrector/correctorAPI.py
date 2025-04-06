@@ -4,17 +4,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
 from pillow_lut import load_cube_file
-from matplotlib.patches import Patch 
+from flask import Flask, request, jsonify
 
-from fastapi import FastAPI, UploadFile, File, Query
-from io import BytesIO
-
-app = FastAPI()
+app = Flask(__name__)
 
 LUT_PATHS = {
-    "LUTs\Canon C-Log2 to Rec.709 LUT 33x33.cube", "LUTs\Canon C-Log3 to Rec.709 LUT 33x33.cube", "LUTs\DJI D-Log to Rec.709 LUT 33x33.cube",
-    "LUTs\Fujifilm F-Log to Rec.709 LUT 33x33.cube", "LUTs\Nikon N-Log to Rec.709 LUT 33x33.cube", "LUTs\Sony S-Log2 to Rec.709 LUT 33x33.cube",
-    "LUTs\Sony S-Log3 to Rec.709 LUT 33x33.cube"
+    r"LUTs\Canon C-Log2 to Rec.709 LUT 33x33.cube": r"LUTs\Canon C-Log2 to Rec.709 LUT 33x33.cube",
+    r"LUTs\Canon C-Log3 to Rec.709 LUT 33x33.cube": r"LUTs\Canon C-Log3 to Rec.709 LUT 33x33.cube",
+    r"LUTs\DJI D-Log to Rec.709 LUT 33x33.cube": r"LUTs\DJI D-Log to Rec.709 LUT 33x33.cube",
+    r"LUTs\Fujifilm F-Log to Rec.709 LUT 33x33.cube": r"LUTs\Fujifilm F-Log to Rec.709 LUT 33x33.cube",
+    r"LUTs\Nikon N-Log to Rec.709 LUT 33x33.cube": r"LUTs\Nikon N-Log to Rec.709 LUT 33x33.cube",
+    r"LUTs\Sony S-Log2 to Rec.709 LUT 33x33.cube": r"LUTs\Sony S-Log2 to Rec.709 LUT 33x33.cube",
+    r"LUTs\Sony S-Log3 to Rec.709 LUT 33x33.cube": r"LUTs\Sony S-Log3 to Rec.709 LUT 33x33.cube"
 }
 
 def generate_scaling_factors(image):
@@ -103,17 +104,31 @@ def apply_lut(image_path, lut_path):
     
     return corrected_image_np
     
-@app.post("/color_correct/")    
-async def color_correct_image(file: UploadFile = File(...), lut_name: str = Query(...)):
-    try:
-        image_bytes = await file.read()
+@app.route('/color_correct', methods=['POST'])
+def color_correct_image():
+    if 'file' not in request.files or 'lut_name' not in request.form:
+        return jsonify({'error': 'Missing file or LUT name'}), 400
+
+    file = request.files['file']
+    lut_name = request.form['lut_name']
+
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file:
+        image_bytes = file.read()
         lut_path = LUT_PATHS.get(lut_name)
         if lut_path is None:
-            return {"error": "Invalid LUT name provided."}
+            return jsonify({"error": "Invalid LUT name provided."}), 400
 
         lut_applied_image = apply_lut(image_bytes, lut_path)
+        if lut_applied_image is None:
+            return jsonify({"error": "Failed to apply LUT."}), 500
+
         corrected_image = color_correction(lut_applied_image)
         _, img_encoded = cv2.imencode('.jpg', corrected_image)
-        return {"image": img_encoded.tobytes()}
-    except Exception as e:
-        return {"error": str(e)}
+        return jsonify({'image': img_encoded.tobytes().decode('latin-1')}) # important change here.
+    return jsonify({'error': 'No file uploaded'}), 400
+
+if __name__ == '__main__':
+    app.run(debug=True)

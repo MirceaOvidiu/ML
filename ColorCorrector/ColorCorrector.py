@@ -2,8 +2,9 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pylut as lut
-from matplotlib.patches import Patch  # pentru legenda
+from PIL import Image
+from pillow_lut import load_cube_file
+from matplotlib.patches import Patch 
 
 
 def generate_scaling_factors(image):
@@ -55,7 +56,6 @@ def generate_scaling_factors(image):
 
     return scaling_factors
 
-
 def color_correction(image):
     # Transformam imaginea intr-un vector bidimensional, unde fiecare linie reprezinta un pixel,
     # iar coloanele, valorile R, G si B ale pixelului ca float - la fel ca in generate_scaling_factors
@@ -106,7 +106,6 @@ def color_correction(image):
     # Si ne asiguram ca suntem in spatiul 8-bit de culoare, cu valori 0 - 255
     return np.clip(corrected_image, 0, 255).astype(np.uint8)
 
-
 def plot_difference_heatmap(original_image, corrected_image):
     # Calculam diferenta dintre imaginea originala si cea corectata
     diff_image = np.abs(original_image - corrected_image)
@@ -139,8 +138,6 @@ def component_histograms(original_image, image_title):
     plt.legend(["Blue", "Green", "Red", "Median Blue", "Median Green", "Median Red"])
     plt.show()
 
-
-
 def histograms(original_image, corrected_image):
     hist_original = cv2.calcHist([original_image], [0], None, [256], [0, 256])
     hist_corrected = cv2.calcHist([corrected_image], [0], None, [256], [0, 256])
@@ -161,6 +158,14 @@ def histograms(original_image, corrected_image):
     plt.legend(handles=legend_elements)
     plt.show()
 
+def apply_lut(image_path, lut_path):
+    lut = load_cube_file(lut_path)
+    im = Image.open(image_path)
+    
+    corrected_image_pil = im.filter(lut)
+    corrected_image_np = np.array(corrected_image_pil)
+    
+    return corrected_image_np
 print("Color Corrector")
 print("===================================")
 
@@ -201,3 +206,10 @@ component_histograms(corrected_image, "Corrected")
 
 # Heatmapul pixelilor modificati; pentru a vizualiza rezultatul calitativ al corectiei
 plot_difference_heatmap(original_image, corrected_image)
+
+image_path = "CLog_3.jpg"
+
+apply_lut(image_path, "LUTs/Canon C-Log3 to Rec.709 LUT 33x33.cube")
+
+corrected_image = apply_lut(image_path, "LUTs/Canon C-Log3 to Rec.709 LUT 33x33.cube")
+cv2.imshow("LUT", corrected_image)
