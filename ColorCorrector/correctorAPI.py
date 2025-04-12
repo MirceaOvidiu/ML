@@ -5,6 +5,7 @@ import seaborn as sns
 from PIL import Image
 from pillow_lut import load_cube_file
 from flask import Flask, request, jsonify
+import base64
 
 app = Flask(__name__)
 
@@ -44,6 +45,8 @@ def generate_scaling_factors(image):
     return scaling_factors
 
 def color_correction(image):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
     pixels = image.reshape((-1, 3)).astype(float)
     
     mean_vector = np.mean(pixels, axis=0)
@@ -116,7 +119,9 @@ def color_correct_image():
         return jsonify({'error': 'No selected file'}), 400
 
     if file:
-        image = file.read()
+        image = file
+        if image is None:
+            return jsonify({'error': 'Invalid image file'}), 400
         lut_path = LUT_PATHS.get(lut_name)
         
         if lut_path is None:
@@ -130,7 +135,9 @@ def color_correct_image():
         corrected_image = color_correction(lut_applied_image)
         _, img_encoded = cv2.imencode('.jpeg', corrected_image)
         
-        return jsonify({'image': img_encoded.tobytes().decode('latin-1')}) # important change here.
+        img_encoded = base64.b64encode(img_encoded).decode('utf-8')  # Encode the image to base64
+        
+        return jsonify({'image': img_encoded}) # important change here.
     return jsonify({'error': 'No file uploaded'}), 400
 
 if __name__ == '__main__':
