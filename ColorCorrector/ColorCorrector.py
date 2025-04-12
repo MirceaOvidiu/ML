@@ -45,14 +45,14 @@ def generate_scaling_factors(image):
     )
 
     print(
-        "\n \nDeviatia standard a pixelilor scalati:",
+        "\nDeviatia standard a pixelilor scalati:",
         np.std(transformed_pixels, axis=0),
     )
     print(
-        "Media absoluta a pixelilor scalati:   ",
+        "\nMedia absoluta a pixelilor scalati:   ",
         np.mean(np.abs(transformed_pixels), axis=0),
     )
-    print(" => Factorii de scalare:              ", scaling_factors)
+    print("\n=> Factorii de scalare:              ", scaling_factors)
 
     return scaling_factors
 
@@ -166,11 +166,12 @@ def apply_lut(image_path, lut_path):
     corrected_image_np = np.array(corrected_image_pil)
     
     return corrected_image_np
+
 print("Color Corrector")
 print("===================================")
 
 # Incarcam imaginea
-image_path = "lena.png"
+image_path = "CLog_3.jpg"
 
 # Extragem numele
 image_name = image_path.split(".")[0]
@@ -178,8 +179,11 @@ image_name = image_path.split(".")[0]
 # Citim imaginea originala
 original_image = cv2.imread(image_path)
 
+# Aplicam LUT
+lut_image = apply_lut(image_path, "LUTs/Canon C-Log3 to Rec.709 LUT 33x33.cube")
+
 # Aplicam corectia de culoare
-corrected_image = color_correction(original_image)
+corrected_image = color_correction(lut_image)
 
 # Before and after
 
@@ -190,10 +194,10 @@ corrected_image = color_correction(original_image)
 
 original_image = cv2.resize(original_image, None, fx=1, fy=1)
 cv2.imshow("Original Image", original_image)
+
 corrected_image = cv2.resize(corrected_image, None, fx=1, fy=1)
-cv2.imshow("Color Corrected Image", corrected_image)
-# Salvam imaginea corectata
-cv2.imwrite(image_name + "_corrected.jpg", corrected_image)
+cv2.imshow("REC.709 color corrected", corrected_image)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
@@ -206,10 +210,3 @@ component_histograms(corrected_image, "Corrected")
 
 # Heatmapul pixelilor modificati; pentru a vizualiza rezultatul calitativ al corectiei
 plot_difference_heatmap(original_image, corrected_image)
-
-image_path = "CLog_3.jpg"
-
-apply_lut(image_path, "LUTs/Canon C-Log3 to Rec.709 LUT 33x33.cube")
-
-corrected_image = apply_lut(image_path, "LUTs/Canon C-Log3 to Rec.709 LUT 33x33.cube")
-cv2.imshow("LUT", corrected_image)

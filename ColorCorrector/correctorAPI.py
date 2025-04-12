@@ -74,7 +74,7 @@ def color_correction(image):
 
     corrected_image = corrected_pixels.reshape(image.shape)
 
-    return np.clip(corrected_image, 0, 255).astype(np.uint8)
+    return corrected_image.astype(np.uint8)
     
 def component_histograms(original_image, image_title):
     channels = cv2.split(original_image)
@@ -104,7 +104,7 @@ def apply_lut(image_path, lut_path):
     
     return corrected_image_np
     
-@app.route('/color_correct', methods=['POST'])
+@app.route('/correctAPI', methods=['POST'])
 def color_correct_image():
     if 'file' not in request.files or 'lut_name' not in request.form:
         return jsonify({'error': 'Missing file or LUT name'}), 400
@@ -116,17 +116,20 @@ def color_correct_image():
         return jsonify({'error': 'No selected file'}), 400
 
     if file:
-        image_bytes = file.read()
+        image = file.read()
         lut_path = LUT_PATHS.get(lut_name)
+        
         if lut_path is None:
             return jsonify({"error": "Invalid LUT name provided."}), 400
 
-        lut_applied_image = apply_lut(image_bytes, lut_path)
+        lut_applied_image = apply_lut(image, lut_path)
+        
         if lut_applied_image is None:
             return jsonify({"error": "Failed to apply LUT."}), 500
 
         corrected_image = color_correction(lut_applied_image)
-        _, img_encoded = cv2.imencode('.jpg', corrected_image)
+        _, img_encoded = cv2.imencode('.jpeg', corrected_image)
+        
         return jsonify({'image': img_encoded.tobytes().decode('latin-1')}) # important change here.
     return jsonify({'error': 'No file uploaded'}), 400
 
