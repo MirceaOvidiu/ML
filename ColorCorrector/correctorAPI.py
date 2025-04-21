@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
 from pillow_lut import load_cube_file
-from flask import Flask, request, jsonify
-import base64
+from flask import Flask, request, jsonify, send_file
+from bytesbufio import BytesBufferIO as BytesIO
 
 app = Flask(__name__)
 
@@ -75,28 +75,9 @@ def color_correction(image):
 
     corrected_pixels = corrected_pixels * std_vector + mean_vector
 
-    corrected_image = corrected_pixels.reshape(image.shape)
+    corrected_image = np.array(corrected_pixels.reshape(image.shape))
 
-    return corrected_image.astype(np.uint8)
-    
-def component_histograms(original_image, image_title):
-    channels = cv2.split(original_image)
-
-    colors = ("b", "g", "r")
-    plt.figure(figsize=(10, 10))
-    plt.title(image_title + " separate scopes histograms")
-    plt.xlabel("Bins")
-    plt.ylabel("# of Pixels")
-
-    # For each channel: calculate histogram, plot it, calculate median, plot vertical line
-    for (channel, color) in zip(channels, colors):
-        hist = cv2.calcHist([channel], [0], None, [256], [0, 256])
-        plt.plot(hist, color=color)
-        median = np.median(channel)
-        plt.axvline(median, color=color, linestyle='dashed', linewidth=2)
-
-    plt.legend(['Blue', 'Green', 'Red', 'Median Blue', 'Median Green', 'Median Red'])
-    plt.show()    
+    return corrected_image
 
 def apply_lut(image_path, lut_path):
     lut = load_cube_file(lut_path)
@@ -119,25 +100,22 @@ def color_correct_image():
         return jsonify({'error': 'No selected file'}), 400
 
     if file:
-        image = file
-        if image is None:
-            return jsonify({'error': 'Invalid image file'}), 400
-        lut_path = LUT_PATHS.get(lut_name)
-        
-        if lut_path is None:
-            return jsonify({"error": "Invalid LUT name provided."}), 400
+        try:
+            image_np = apply_lut(file, LUT_PATHS.get(lut_name))
+            if image_np is None:
+                return jsonify({"error": "Failed to apply LUT."}), 500
 
-        lut_applied_image = apply_lut(image, lut_path)
-        
-        if lut_applied_image is None:
-            return jsonify({"error": "Failed to apply LUT."}), 500
+            corrected_image = color_correction(image_np)
+            _, img_encoded = cv2.imencode('.png', corrected_image)
 
-        corrected_image = color_correction(lut_applied_image)
-        _, img_encoded = cv2.imencode('.jpeg', corrected_image)
-        
-        img_encoded = base64.b64encode(img_encoded).decode('utf-8')  # Encode the image to base64
-        
-        return jsonify({'image': img_encoded}) # important change here.
+            img_io = BytesIO(img_encoded.tobytes())
+            img_io.seek(0)
+            
+            return send_file(img_io, mimetype='image/png')
+
+        except Exception as e:
+            return jsonify({'error': f'Error processing image: {e}'}), 500
+
     return jsonify({'error': 'No file uploaded'}), 400
 
 if __name__ == '__main__':

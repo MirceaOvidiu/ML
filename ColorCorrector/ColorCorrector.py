@@ -171,7 +171,7 @@ print("Color Corrector")
 print("===================================")
 
 # Incarcam imaginea
-image_path = "CLog_3.jpg"
+image_path = "Clog_3.jpg"
 
 # Extragem numele
 image_name = image_path.split(".")[0]
@@ -180,7 +180,7 @@ image_name = image_path.split(".")[0]
 original_image = cv2.imread(image_path)
 
 # Aplicam LUT
-lut_image = apply_lut(image_path, "LUTs/Canon C-Log3 to Rec.709 LUT 33x33.cube")
+lut_image = apply_lut(image_path, "LUTs\Canon C-Log3 to Rec.709 LUT 33x33.cube")
 
 # Aplicam corectia de culoare
 corrected_image = color_correction(lut_image)
@@ -198,15 +198,17 @@ cv2.imshow("Original Image", original_image)
 corrected_image = cv2.resize(corrected_image, None, fx=1, fy=1)
 cv2.imshow("REC.709 color corrected", corrected_image)
 
+cv2.imwrite("corrected_image.png", corrected_image)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-# Histogramele - before and after; pentru a vizualiza rezultatul cantitativ al corectiei
-histograms(original_image, corrected_image)
+# # Histogramele - before and after; pentru a vizualiza rezultatul cantitativ al corectiei
+# histograms(original_image, corrected_image)
 
-# Histogramele pe componente
-component_histograms(original_image, "Original")
-component_histograms(corrected_image, "Corrected")
+# # Histogramele pe componente
+# component_histograms(original_image, "Original")
+# component_histograms(corrected_image, "Corrected")
 
 # Heatmapul pixelilor modificati; pentru a vizualiza rezultatul calitativ al corectiei
 plot_difference_heatmap(original_image, corrected_image)
