@@ -63,7 +63,7 @@ def color_correction(image):
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
     
-    principal_components = eigenvectors[:, :5]
+    principal_components = eigenvectors[:, :6]
 
     projected_pixels = np.dot(standardized_pixels, principal_components)
 
@@ -119,4 +119,4 @@ def color_correct_image():
     return jsonify({'error': 'No file uploaded'}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -171,7 +171,7 @@ print("Color Corrector")
 print("===================================")
 
 # Incarcam imaginea
-image_path = "Clog_3.jpg"
+image_path = "Images\CLog_3.jpg"
 
 # Extragem numele
 image_name = image_path.split(".")[0]
